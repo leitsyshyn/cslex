@@ -1,11 +1,11 @@
 
 #include "FSMLexer.h"
 #include "../LexicalException.h"
-#include "FsmRuleRegistry.h"
+#include "FSMRuleRegistry.h"
 #include <cctype>
 
 FSMLexer::FSMLexer() {
-    processors = createDefaultFsmProcessors();
+    processors = createDefaultFSMProcessors();
 }
 
 FSMLexer::FSMLexer(std::vector<std::unique_ptr<IProcessor>> customProcessors)

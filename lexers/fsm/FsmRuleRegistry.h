@@ -14,7 +14,7 @@
 #include <memory>
 #include <vector>
 
-inline std::vector<std::unique_ptr<IProcessor>> createDefaultFsmProcessors() {
+inline std::vector<std::unique_ptr<IProcessor>> createDefaultFSMProcessors() {
     std::vector<std::unique_ptr<IProcessor>> processors;
     processors.push_back(std::make_unique<PreprocessorProcessor>());
     processors.push_back(std::make_unique<CommentProcessor>());
