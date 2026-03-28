@@ -1,78 +1,70 @@
 #include "RegexLexer.h"
+#include "../LexicalException.h"
 #include <regex>
 
-std::vector<Token> RegexLexer::tokenize(const std::string& source) {
-    return tokenizeSource(source);
+namespace {
+void appendDiagnostic(LexerResult& result, const Diagnostic& diagnostic, ErrorMode errorMode) {
+    if (errorMode == ErrorMode::Throw) {
+        throw LexicalException(diagnostic);
+    }
+
+    result.diagnostics.push_back(diagnostic);
+}
+} // namespace
+
+LexerResult RegexLexer::tokenize(const std::string& source, ErrorMode errorMode) {
+    return tokenizeSource(source, errorMode);
 }
 
-vector<Token> RegexLexer::tokenizeSource(const string& source) {
-    vector<Token> tokens;
-    int line_number = 1;
-    int col_number = 1;
+LexerResult RegexLexer::tokenizeSource(const string& source, ErrorMode errorMode) {
+    LexerResult result;
+    Position current_position;
     
     size_t cursor = 0;
     while (cursor < source.length()) {
         bool matched = false;
         
-        for (const auto& [type, pattern] : REGEX_PATTERNS) {
+        for (const auto& rule : REGEX_PATTERNS) {
             smatch match;
-            if (regex_search(source.cbegin() + cursor, source.cend(), match, pattern, 
-                           regex_constants::match_continuous)) {
+            if (regex_search(source.cbegin() + cursor, source.cend(), match, rule.pattern,
+                            regex_constants::match_continuous)) {
                 string lexeme = match.str(0);
-                TokenType token_type = type;
-                
-                if (type == TokenType::IDENTIFIER) {
-                    string identifier = lexeme;
-                    if (identifier[0] == '@') {
-                        identifier = identifier.substr(1);
-                    } else if (KEYWORDS.find(identifier) != KEYWORDS.end()) {
-                        token_type = TokenType::KEYWORD;
+                Position start = current_position;
+                Position end = advancePosition(start, lexeme);
+
+                if (rule.emits_diagnostic) {
+                    appendDiagnostic(result,
+                                     makeDiagnostic(rule.diagnostic_code, lexeme, start, end),
+                                     errorMode);
+                } else if (rule.token_type != TokenType::WHITESPACE) {
+                    TokenType token_type = rule.token_type;
+                    if (token_type == TokenType::IDENTIFIER) {
+                        token_type = classifyIdentifierLexeme(lexeme);
                     }
+
+                    result.tokens.push_back(Token(token_type, lexeme, start, end));
                 }
-                
-                if (type != TokenType::WHITESPACE) {
-                    Position start(cursor, line_number, col_number);
-                    
-                    int end_line = line_number;
-                    int end_col = col_number;
-                    size_t end_cursor = cursor;
-                    for (char c : lexeme) {
-                        if (c == '\n') {
-                            end_line++;
-                            end_col = 1;
-                        } else {
-                            end_col++;
-                        }
-                        end_cursor++;
-                    }
-                    Position end(end_cursor, end_line, end_col);
-                    
-                    tokens.push_back(Token(token_type, lexeme, start, end));
-                }
-                
-                for (char c : lexeme) {
-                    if (c == '\n') {
-                        line_number++;
-                        col_number = 1;
-                    } else {
-                        col_number++;
-                    }
-                }
-                
-                cursor += lexeme.length();
+
+                current_position = end;
+                cursor = end.index;
                 matched = true;
                 break;
             }
         }
         
         if (!matched) {
-            cursor++;
-            col_number++;
+            string lexeme(1, source[cursor]);
+            Position start = current_position;
+            Position end = advancePosition(start, lexeme);
+            appendDiagnostic(result,
+                             makeDiagnostic(DiagnosticCode::UnexpectedCharacter, lexeme, start, end),
+                             errorMode);
+            current_position = end;
+            cursor = end.index;
         }
     }
     
-    Position end_pos(cursor, line_number, col_number);
-    tokens.push_back(Token(TokenType::END_OF_FILE, "", end_pos, end_pos));
+    result.tokens.push_back(Token(TokenType::END_OF_FILE, "", current_position, current_position));
     
-    return tokens;
+    return result;
 }

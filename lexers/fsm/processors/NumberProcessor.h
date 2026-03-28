@@ -1,15 +1,15 @@
 #pragma once
 
 #include "IProcessor.h"
-#include <cctype>
+#include "../../LexicalRules.h"
 
 class NumberProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
-        if (!isdigit(c)) {
-            return false;
+        if (!isDigitChar(c)) {
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
@@ -21,11 +21,7 @@ public:
             lexeme += buffer.advance();
             
             while (buffer.peek() == '0' || buffer.peek() == '1' || buffer.peek() == '_') {
-                if (buffer.peek() != '_') {
-                    lexeme += buffer.advance();
-                } else {
-                    buffer.advance(); 
-                }
+                lexeme += buffer.advance();
             }
             
             if (buffer.peek() == 'u' || buffer.peek() == 'U') {
@@ -40,28 +36,25 @@ public:
                 }
             }
             
-            if (isalpha(buffer.peek()) || buffer.peek() == '_') {
-                while (isalnum(buffer.peek()) || buffer.peek() == '_') {
+            if (isAlphaChar(buffer.peek()) || buffer.peek() == '_') {
+                while (isAlnumChar(buffer.peek()) || buffer.peek() == '_') {
                     lexeme += buffer.advance();
                 }
-                emitToken(TokenType::ERROR, lexeme, start, buffer.getCurrentPosition(), tokens);
-                return true;
+                return diagnosticResult(DiagnosticCode::InvalidNumericLiteral,
+                                        lexeme,
+                                        start,
+                                        buffer.getCurrentPosition());
             }
             
-            emitToken(TokenType::INTEGER_LITERAL, lexeme, start, buffer.getCurrentPosition(), tokens);
-            return true;
+            return tokenResult(TokenType::INTEGER_LITERAL, lexeme, start, buffer.getCurrentPosition());
         }
         
         if (buffer.peek() == '0' && (buffer.peek_next() == 'x' || buffer.peek_next() == 'X')) {
             lexeme += buffer.advance();
             lexeme += buffer.advance();
             
-            while (isxdigit(buffer.peek()) || buffer.peek() == '_') {
-                if (buffer.peek() != '_') {
-                    lexeme += buffer.advance();
-                } else {
-                    buffer.advance();
-                }
+            while (isHexDigitChar(buffer.peek()) || buffer.peek() == '_') {
+                lexeme += buffer.advance();
             }
             
             if (buffer.peek() == 'u' || buffer.peek() == 'U') {
@@ -76,36 +69,29 @@ public:
                 }
             }
             
-            if (isalpha(buffer.peek()) || buffer.peek() == '_') {
-                while (isalnum(buffer.peek()) || buffer.peek() == '_') {
+            if (isAlphaChar(buffer.peek()) || buffer.peek() == '_') {
+                while (isAlnumChar(buffer.peek()) || buffer.peek() == '_') {
                     lexeme += buffer.advance();
                 }
-                emitToken(TokenType::ERROR, lexeme, start, buffer.getCurrentPosition(), tokens);
-                return true;
+                return diagnosticResult(DiagnosticCode::InvalidNumericLiteral,
+                                        lexeme,
+                                        start,
+                                        buffer.getCurrentPosition());
             }
             
-            emitToken(TokenType::INTEGER_LITERAL, lexeme, start, buffer.getCurrentPosition(), tokens);
-            return true;
+            return tokenResult(TokenType::INTEGER_LITERAL, lexeme, start, buffer.getCurrentPosition());
         }
         
-        while (isdigit(buffer.peek()) || buffer.peek() == '_') {
-            if (buffer.peek() != '_') {
-                lexeme += buffer.advance();
-            } else {
-                buffer.advance();
-            }
+        while (isDigitChar(buffer.peek()) || buffer.peek() == '_') {
+            lexeme += buffer.advance();
         }
         
         if (buffer.peek() == '.') {
             is_real = true;
             lexeme += buffer.advance();
             
-            while (isdigit(buffer.peek()) || buffer.peek() == '_') {
-                if (buffer.peek() != '_') {
-                    lexeme += buffer.advance();
-                } else {
-                    buffer.advance();
-                }
+            while (isDigitChar(buffer.peek()) || buffer.peek() == '_') {
+                lexeme += buffer.advance();
             }
         }
         
@@ -117,12 +103,8 @@ public:
                 lexeme += buffer.advance();
             }
             
-            while (isdigit(buffer.peek()) || buffer.peek() == '_') {
-                if (buffer.peek() != '_') {
-                    lexeme += buffer.advance();
-                } else {
-                    buffer.advance();
-                }
+            while (isDigitChar(buffer.peek()) || buffer.peek() == '_') {
+                lexeme += buffer.advance();
             }
         }
         
@@ -142,15 +124,19 @@ public:
             }
         }
         
-        if (isalpha(buffer.peek()) || buffer.peek() == '_') {
-            while (isalnum(buffer.peek()) || buffer.peek() == '_') {
+        if (isAlphaChar(buffer.peek()) || buffer.peek() == '_') {
+            while (isAlnumChar(buffer.peek()) || buffer.peek() == '_') {
                 lexeme += buffer.advance();
             }
-            emitToken(TokenType::ERROR, lexeme, start, buffer.getCurrentPosition(), tokens);
-            return true;
+            return diagnosticResult(DiagnosticCode::InvalidNumericLiteral,
+                                    lexeme,
+                                    start,
+                                    buffer.getCurrentPosition());
         }
         
-        emitToken(is_real ? TokenType::REAL_LITERAL : TokenType::INTEGER_LITERAL, lexeme, start, buffer.getCurrentPosition(), tokens);
-        return true;
+        return tokenResult(is_real ? TokenType::REAL_LITERAL : TokenType::INTEGER_LITERAL,
+                           lexeme,
+                           start,
+                           buffer.getCurrentPosition());
     }
 };

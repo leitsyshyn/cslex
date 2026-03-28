@@ -1,37 +1,41 @@
 
 #include "FSMLexer.h"
-#include "processors/PreprocessorProcessor.h"
-#include "processors/CommentProcessor.h"
-#include "processors/VerbatimStringProcessor.h"
-#include "processors/InterpolatedStringProcessor.h"
-#include "processors/StringProcessor.h"
-#include "processors/CharProcessor.h"
-#include "processors/NumberProcessor.h"
-#include "processors/IdentifierProcessor.h"
-#include "processors/OperatorProcessor.h"
-#include "processors/SeparatorProcessor.h"
+#include "../LexicalException.h"
+#include "FsmRuleRegistry.h"
 #include <cctype>
 
 FSMLexer::FSMLexer() {
-    processors.push_back(make_unique<PreprocessorProcessor>());
-    processors.push_back(make_unique<CommentProcessor>());
-    processors.push_back(make_unique<VerbatimStringProcessor>());
-    processors.push_back(make_unique<InterpolatedStringProcessor>());
-    processors.push_back(make_unique<StringProcessor>());
-    processors.push_back(make_unique<CharProcessor>());
-    processors.push_back(make_unique<NumberProcessor>());
-    processors.push_back(make_unique<IdentifierProcessor>());
-    processors.push_back(make_unique<OperatorProcessor>());
-    processors.push_back(make_unique<SeparatorProcessor>());
+    processors = createDefaultFsmProcessors();
 }
 
-std::vector<Token> FSMLexer::tokenize(const std::string& source) {
+FSMLexer::FSMLexer(std::vector<std::unique_ptr<IProcessor>> customProcessors)
+    : processors(std::move(customProcessors)) {
+}
+
+namespace {
+void appendProcessorResult(LexerResult& result, const ProcessorResult& processorResult, ErrorMode errorMode) {
+    if (processorResult.token.has_value()) {
+        result.tokens.push_back(*processorResult.token);
+        return;
+    }
+
+    if (processorResult.diagnostic.has_value()) {
+        if (errorMode == ErrorMode::Throw) {
+            throw LexicalException(*processorResult.diagnostic);
+        }
+
+        result.diagnostics.push_back(*processorResult.diagnostic);
+    }
+}
+} // namespace
+
+LexerResult FSMLexer::tokenize(const std::string& source, ErrorMode errorMode) {
     InputBuffer buffer(source);
-    return tokenizeBuffer(buffer);
+    return tokenizeBuffer(buffer, errorMode);
 }
 
-vector<Token> FSMLexer::tokenizeBuffer(InputBuffer& buffer) {
-    vector<Token> tokens;
+LexerResult FSMLexer::tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) {
+    LexerResult result;
 
     while (!buffer.eof()) {
         const char c = buffer.peek();
@@ -43,7 +47,9 @@ vector<Token> FSMLexer::tokenizeBuffer(InputBuffer& buffer) {
         
         bool processed = false;
         for (auto& processor : processors) {
-            if (processor->process(buffer, tokens)) {
+            const auto processorResult = processor->process(buffer);
+            if (processorResult.matched) {
+                appendProcessorResult(result, processorResult, errorMode);
                 processed = true;
                 break;
             }
@@ -53,12 +59,18 @@ vector<Token> FSMLexer::tokenizeBuffer(InputBuffer& buffer) {
             Position start = buffer.getCurrentPosition();
             string lexeme(1, buffer.advance());
             Position end = buffer.getCurrentPosition();
-            tokens.push_back(Token(TokenType::ERROR, lexeme, start, end));
+
+            Diagnostic diagnostic = makeDiagnostic(DiagnosticCode::UnexpectedCharacter, lexeme, start, end);
+            if (errorMode == ErrorMode::Throw) {
+                throw LexicalException(diagnostic);
+            }
+
+            result.diagnostics.push_back(diagnostic);
         }
     }
     
     Position end_pos = buffer.getCurrentPosition();
-    tokens.push_back(Token(TokenType::END_OF_FILE, "", end_pos, end_pos));
+    result.tokens.push_back(Token(TokenType::END_OF_FILE, "", end_pos, end_pos));
     
-    return tokens;
+    return result;
 }

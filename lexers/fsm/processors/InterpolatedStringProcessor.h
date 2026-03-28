@@ -4,11 +4,11 @@
 
 class InterpolatedStringProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (c != '$' || (buffer.peek_next() != '"' && buffer.peek_next() != '@')) {
-            return false;
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
@@ -25,6 +25,7 @@ public:
             lexeme += buffer.advance();
             
             int brace_depth = 0;
+            bool terminated = false;
             while (buffer.peek() != '\0') {
                 if (buffer.peek() == '{') {
                     lexeme += buffer.advance();
@@ -46,6 +47,7 @@ public:
                         lexeme += buffer.advance(); 
                     } else {
                         lexeme += buffer.advance();
+                        terminated = true;
                         break;
                     }
                 } else if (buffer.peek() == '\\' && !is_verbatim) {
@@ -57,9 +59,20 @@ public:
                     lexeme += buffer.advance();
                 }
             }
+
+            if (terminated && brace_depth == 0) {
+                return tokenResult(TokenType::INTERPOLATED_STRING, lexeme, start, buffer.getCurrentPosition());
+            }
+
+            return diagnosticResult(DiagnosticCode::UnterminatedInterpolatedStringLiteral,
+                                    lexeme,
+                                    start,
+                                    buffer.getCurrentPosition());
         }
-        
-        emitToken(TokenType::INTERPOLATED_STRING, lexeme, start, buffer.getCurrentPosition(), tokens);
-        return true;
+
+        return diagnosticResult(DiagnosticCode::UnterminatedInterpolatedStringLiteral,
+                                lexeme,
+                                start,
+                                buffer.getCurrentPosition());
     }
 };

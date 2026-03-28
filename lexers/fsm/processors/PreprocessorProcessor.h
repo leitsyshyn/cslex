@@ -4,11 +4,11 @@
 
 class PreprocessorProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (c != '#') {
-            return false;
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
@@ -18,7 +18,6 @@ public:
             lexeme += buffer.advance();
         }
         
-        emitToken(TokenType::PREPROCESSOR, lexeme, start, buffer.getCurrentPosition(), tokens);
-        return true;
+        return tokenResult(TokenType::PREPROCESSOR, lexeme, start, buffer.getCurrentPosition());
     }
 };

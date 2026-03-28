@@ -4,17 +4,19 @@
 
 class SeparatorProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         const string separators = "(){}[];,";
         
         if (separators.find(c) == string::npos) {
-            return false;
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
-        emitToken(TokenType::SEPARATOR, string(1, buffer.advance()), start, buffer.getCurrentPosition(), tokens);
-        return true;
+        return tokenResult(TokenType::SEPARATOR,
+                           string(1, buffer.advance()),
+                           start,
+                           buffer.getCurrentPosition());
     }
 };

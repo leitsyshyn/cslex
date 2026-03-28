@@ -1,30 +1,35 @@
 #include "InputBuffer.h"
 
-InputBuffer::InputBuffer(const string& source)
+InputBuffer::InputBuffer(const std::string& source)
     : source(source), position() {
 }
 
-char InputBuffer::peek() const {
-    if (position.index >= source.length()) return '\0';
-    return source[position.index];
+char InputBuffer::peek(std::size_t offset) const {
+    const std::size_t index = position.index + offset;
+    if (index >= source.length()) {
+        return '\0';
+    }
+
+    return source[index];
 }
 
 char InputBuffer::peek_next() const {
-    if (position.index + 1 >= source.length()) return '\0';
-    return source[position.index + 1];
+    return peek(1);
 }
 
 char InputBuffer::advance() {
-    if (position.index >= source.length()) return '\0';
+    if (position.index >= source.length()) {
+        return '\0';
+    }
     
     const char current = source[position.index];
-    position.index++;
+    ++position.index;
     
     if (current == '\n') {
-        position.line++;
+        ++position.line;
         position.col = 1;
     } else {
-        position.col++;
+        ++position.col;
     }
     
     return current;

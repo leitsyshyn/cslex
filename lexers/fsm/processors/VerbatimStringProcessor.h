@@ -4,15 +4,16 @@
 
 class VerbatimStringProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (c != '@' || buffer.peek_next() != '"') {
-            return false;
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
         string lexeme;
+        bool terminated = false;
         lexeme += buffer.advance();
         lexeme += buffer.advance(); 
         
@@ -22,14 +23,21 @@ public:
                 if (buffer.peek() == '"') {
                     lexeme += buffer.advance();
                 } else {
-                    break; 
+                    terminated = true;
+                    break;
                 }
             } else {
                 lexeme += buffer.advance();
             }
         }
         
-        emitToken(TokenType::VERBATIM_STRING, lexeme, start, buffer.getCurrentPosition(), tokens);
-        return true;
+        if (terminated) {
+            return tokenResult(TokenType::VERBATIM_STRING, lexeme, start, buffer.getCurrentPosition());
+        }
+
+        return diagnosticResult(DiagnosticCode::UnterminatedVerbatimStringLiteral,
+                                lexeme,
+                                start,
+                                buffer.getCurrentPosition());
     }
 };

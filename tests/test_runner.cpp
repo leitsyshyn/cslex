@@ -10,7 +10,8 @@
 using namespace std;
 
 void test_lexer(ILexer* lexer, const string& input, const vector<pair<TokenType, string>>& expected, const string& test_name) {
-    auto tokens = lexer->tokenize(input);
+    auto result = lexer->tokenize(input);
+    const auto& tokens = result.tokens;
     
     vector<Token> filtered;
     for (const auto& token : tokens) {
@@ -49,7 +50,7 @@ void test_integers(ILexer* lexer, const string& lexer_name) {
     test_lexer(lexer, "123L", {{TokenType::INTEGER_LITERAL, "123L"}}, lexer_name + " - long integer");
     test_lexer(lexer, "123UL", {{TokenType::INTEGER_LITERAL, "123UL"}}, lexer_name + " - unsigned long");
     if (lexer_name.find("FSM") != string::npos) {
-        test_lexer(lexer, "1_000_000", {{TokenType::INTEGER_LITERAL, "1000000"}}, lexer_name + " - integer with underscores");
+        test_lexer(lexer, "1_000_000", {{TokenType::INTEGER_LITERAL, "1_000_000"}}, lexer_name + " - integer with underscores");
     } else {
         test_lexer(lexer, "1_000_000", {{TokenType::INTEGER_LITERAL, "1_000_000"}}, lexer_name + " - integer with underscores");
     }
@@ -97,8 +98,8 @@ void test_operators(ILexer* lexer, const string& lexer_name) {
     test_lexer(lexer, "!=", {{TokenType::OPERATOR, "!="}}, lexer_name + " - not equals");
     test_lexer(lexer, "&&", {{TokenType::OPERATOR, "&&"}}, lexer_name + " - logical AND");
     test_lexer(lexer, "||", {{TokenType::OPERATOR, "||"}}, lexer_name + " - logical OR");
-    test_lexer(lexer, "??", {{TokenType::OPERATOR, "??"}}, lexer_name + " - null coalescing");
-    test_lexer(lexer, "??=", {{TokenType::OPERATOR, "??="}}, lexer_name + " - null coalescing assignment");
+    test_lexer(lexer, "?" "?", {{TokenType::OPERATOR, "?" "?"}}, lexer_name + " - null coalescing");
+    test_lexer(lexer, "?" "?=", {{TokenType::OPERATOR, "?" "?="}}, lexer_name + " - null coalescing assignment");
     test_lexer(lexer, "?.", {{TokenType::OPERATOR, "?."}}, lexer_name + " - null conditional");
     test_lexer(lexer, "=>", {{TokenType::OPERATOR, "=>"}}, lexer_name + " - lambda arrow");
     test_lexer(lexer, "<<=", {{TokenType::OPERATOR, "<<="}}, lexer_name + " - left shift assignment");

@@ -4,11 +4,11 @@
 
 class CharProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (c != '\'') {
-            return false;
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
@@ -28,11 +28,12 @@ public:
         
         if (buffer.peek() == '\'') {
             lexeme += buffer.advance();
-            emitToken(TokenType::CHARACTER_LITERAL, lexeme, start, buffer.getCurrentPosition(), tokens);
-        } else {
-            emitToken(TokenType::ERROR, lexeme, start, buffer.getCurrentPosition(), tokens);
+            return tokenResult(TokenType::CHARACTER_LITERAL, lexeme, start, buffer.getCurrentPosition());
         }
-        
-        return true;
+
+        return diagnosticResult(DiagnosticCode::UnterminatedCharacterLiteral,
+                                lexeme,
+                                start,
+                                buffer.getCurrentPosition());
     }
 };

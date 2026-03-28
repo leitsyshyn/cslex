@@ -5,11 +5,11 @@
 
 class OperatorProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (SINGLE_CHAR_OPERATORS.find(c) == string::npos) {
-            return false;
+            return noMatch();
         }
         
         for (const auto& op : THREE_CHAR_OPERATORS) {
@@ -21,12 +21,10 @@ public:
                 char third = buffer.peek();
                 if (third == op[2]) {
                     lexeme += buffer.advance();
-                    emitToken(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition(), tokens);
-                    return true;
-                } else {
-                    emitToken(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition(), tokens);
-                    return true;
+                    return tokenResult(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition());
                 }
+
+                return tokenResult(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition());
             }
         }
         
@@ -36,13 +34,14 @@ public:
                 string lexeme;
                 lexeme += buffer.advance();
                 lexeme += buffer.advance();
-                emitToken(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition(), tokens);
-                return true;
+                return tokenResult(TokenType::OPERATOR, lexeme, start, buffer.getCurrentPosition());
             }
         }
         
         Position start = buffer.getCurrentPosition();
-        emitToken(TokenType::OPERATOR, string(1, buffer.advance()), start, buffer.getCurrentPosition(), tokens);
-        return true;
+        return tokenResult(TokenType::OPERATOR,
+                           string(1, buffer.advance()),
+                           start,
+                           buffer.getCurrentPosition());
     }
 };

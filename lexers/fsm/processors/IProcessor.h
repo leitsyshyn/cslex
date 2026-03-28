@@ -1,21 +1,46 @@
 #pragma once
 
+#include "../../Diagnostic.h"
 #include "../InputBuffer.h"
 #include "../../../Token.h"
-#include "../../../Position.h"
-#include <vector>
+#include <optional>
 #include <string>
 
 using namespace std;
 
+struct ProcessorResult {
+    bool matched = false;
+    std::optional<Token> token;
+    std::optional<Diagnostic> diagnostic;
+};
+
 class IProcessor {
 public:
     virtual ~IProcessor() = default;
-    virtual bool process(InputBuffer& buffer, vector<Token>& tokens) = 0;
+    virtual ProcessorResult process(InputBuffer& buffer) = 0;
 
 protected:
-    void emitToken(TokenType type, const string& lexeme, const Position& start, 
-                   const Position& end, vector<Token>& tokens) {
-        tokens.push_back(Token(type, lexeme, start, end));
+    static ProcessorResult noMatch() {
+        return ProcessorResult{};
+    }
+
+    static ProcessorResult tokenResult(TokenType type,
+                                       const string& lexeme,
+                                       const Position& start,
+                                       const Position& end) {
+        ProcessorResult result;
+        result.matched = true;
+        result.token = Token(type, lexeme, start, end);
+        return result;
+    }
+
+    static ProcessorResult diagnosticResult(DiagnosticCode code,
+                                            const string& lexeme,
+                                            const Position& start,
+                                            const Position& end) {
+        ProcessorResult result;
+        result.matched = true;
+        result.diagnostic = makeDiagnostic(code, lexeme, start, end);
+        return result;
     }
 };

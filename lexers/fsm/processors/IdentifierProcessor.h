@@ -1,19 +1,18 @@
 #pragma once
 
 #include "IProcessor.h"
-#include "../../../keywords.h"
-#include <cctype>
+#include "../../LexicalRules.h"
 
 class IdentifierProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         bool is_verbatim = false;
-        if (c == '@' && (isalpha(buffer.peek_next()) || buffer.peek_next() == '_')) {
+        if (c == '@' && isIdentifierStart(buffer.peek_next())) {
             is_verbatim = true;
-        } else if (!isalpha(c) && c != '_') {
-            return false;
+        } else if (!isIdentifierStart(c)) {
+            return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
@@ -23,16 +22,13 @@ public:
             lexeme += buffer.advance();
         }
 
-        while (isalnum(buffer.peek()) || buffer.peek() == '_') {
+        while (isIdentifierPart(buffer.peek())) {
             lexeme += buffer.advance();
         }
-        
-        if (!is_verbatim && KEYWORDS.find(lexeme) != KEYWORDS.end()) {
-            emitToken(TokenType::KEYWORD, lexeme, start, buffer.getCurrentPosition(), tokens);
-        } else {
-            emitToken(TokenType::IDENTIFIER, lexeme, start, buffer.getCurrentPosition(), tokens);
-        }
-        
-        return true;
+
+        return tokenResult(classifyIdentifierLexeme(lexeme),
+                           lexeme,
+                           start,
+                           buffer.getCurrentPosition());
     }
 };

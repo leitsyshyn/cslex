@@ -1,15 +1,14 @@
 #pragma once
 
-#include <string>
 #include "../../Position.h"
-
-using namespace std;
+#include <cstddef>
+#include <string>
 
 class InputBuffer {
 public:
-    explicit InputBuffer(const string& source);
+    explicit InputBuffer(const std::string& source);
     
-    char peek() const;
+    char peek(std::size_t offset = 0) const;
     char peek_next() const;
     char advance();
     bool eof() const;
@@ -17,6 +16,6 @@ public:
     Position getCurrentPosition() const;
 
 private:
-    string source;
+    std::string source;
     Position position;
 };

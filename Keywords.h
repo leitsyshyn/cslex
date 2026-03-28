@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <string>
 
-const unordered_set<string> KEYWORDS = {
+const std::unordered_set<std::string> KEYWORDS = {
     "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
     "checked", "class", "const", "continue", "decimal", "default", "delegate",
     "do", "double", "else", "enum", "event", "explicit", "extern", "false",

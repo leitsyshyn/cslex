@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../ILexer.h"
-#include "../../keywords.h"
+#include "../LexicalRules.h"
 #include "RegexPatterns.h"
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 class RegexLexer : public ILexer {
 public:
-    std::vector<Token> tokenize(const std::string& source) override;
-    static vector<Token> tokenizeSource(const string& source);
+    LexerResult tokenize(const std::string& source, ErrorMode errorMode = ErrorMode::Collect) override;
+    static LexerResult tokenizeSource(const string& source, ErrorMode errorMode = ErrorMode::Collect);
 };

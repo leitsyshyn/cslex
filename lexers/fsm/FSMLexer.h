@@ -3,17 +3,18 @@
 #include "../ILexer.h"
 #include "InputBuffer.h"
 #include "processors/IProcessor.h"
-#include <vector>
 #include <memory>
+#include <vector>
 
 using namespace std;
 
 class FSMLexer : public ILexer {
 public:
     FSMLexer();
-    std::vector<Token> tokenize(const std::string& source) override;
+    explicit FSMLexer(std::vector<std::unique_ptr<IProcessor>> customProcessors);
+    LexerResult tokenize(const std::string& source, ErrorMode errorMode = ErrorMode::Collect) override;
 
 private:
-    vector<Token> tokenizeBuffer(InputBuffer& buffer);
+    LexerResult tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode);
     vector<unique_ptr<IProcessor>> processors;
 };

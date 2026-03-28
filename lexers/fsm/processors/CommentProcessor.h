@@ -4,11 +4,11 @@
 
 class CommentProcessor : public IProcessor {
 public:
-    bool process(InputBuffer& buffer, vector<Token>& tokens) override {
+    ProcessorResult process(InputBuffer& buffer) override {
         char c = buffer.peek();
         
         if (c != '/') {
-            return false;
+            return noMatch();
         }
         
         if (buffer.peek_next() == '/') {
@@ -17,8 +17,7 @@ public:
             while (buffer.peek() != '\n' && buffer.peek() != '\0') {
                 lexeme += buffer.advance();
             }
-            emitToken(TokenType::COMMENT, lexeme, start, buffer.getCurrentPosition(), tokens);
-            return true;
+            return tokenResult(TokenType::COMMENT, lexeme, start, buffer.getCurrentPosition());
         }
         
         if (buffer.peek_next() == '*') {
@@ -34,14 +33,15 @@ public:
             if (buffer.peek() == '*' && buffer.peek_next() == '/') {
                 lexeme += buffer.advance(); 
                 lexeme += buffer.advance(); 
-                emitToken(TokenType::COMMENT, lexeme, start, buffer.getCurrentPosition(), tokens);
-            } else {
-                emitToken(TokenType::ERROR, lexeme, start, buffer.getCurrentPosition(), tokens);
+                return tokenResult(TokenType::COMMENT, lexeme, start, buffer.getCurrentPosition());
             }
-            
-            return true;
+
+            return diagnosticResult(DiagnosticCode::UnterminatedComment,
+                                    lexeme,
+                                    start,
+                                    buffer.getCurrentPosition());
         }
         
-        return false;
+        return noMatch();
     }
 };
