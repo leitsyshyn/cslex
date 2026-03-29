@@ -7,6 +7,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(ENABLE_COVERAGE "Enable LLVM coverage instrumentation" OFF)
+
+if(ENABLE_COVERAGE)
+    if(MSVC)
+        message(FATAL_ERROR "Coverage is only configured for Clang-compatible toolchains")
+    endif()
+
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "Coverage currently requires Clang or AppleClang")
+    endif()
+
+    set(CSLEX_COVERAGE_FLAGS
+        -O0
+        -g
+        -fprofile-instr-generate
+        -fcoverage-mapping
+    )
+endif()
+
 include(CTest)
 
 add_library(cslex_lib
@@ -44,11 +63,20 @@ target_include_directories(cslex_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+if(ENABLE_COVERAGE)
+    target_compile_options(cslex_lib PRIVATE ${CSLEX_COVERAGE_FLAGS})
+endif()
+
 add_executable(cslex
     main.cpp
 )
 
 target_link_libraries(cslex PRIVATE cslex_lib)
+
+if(ENABLE_COVERAGE)
+    target_compile_options(cslex PRIVATE ${CSLEX_COVERAGE_FLAGS})
+    target_link_options(cslex PRIVATE ${CSLEX_COVERAGE_FLAGS})
+endif()
 
 set_target_properties(cslex PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -72,27 +100,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 endif()
 
-# Test runner executable
-add_executable(test_runner
-    tests/test_runner.cpp
-)
-
-target_link_libraries(test_runner PRIVATE cslex_lib)
-
-set_target_properties(test_runner PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
-
-if(MSVC)
-    target_compile_options(test_runner PRIVATE /W4)
-else()
-    target_compile_options(test_runner PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
 if(BUILD_TESTING)
     find_package(GTest CONFIG QUIET)
 
-    if(NOT TARGET GTest::gtest)
+    if(NOT TARGET GTest::gtest OR NOT TARGET GTest::gmock)
         include(FetchContent)
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
         FetchContent_Declare(
@@ -107,11 +118,10 @@ if(BUILD_TESTING)
 
     add_executable(cslex_gtests
         tests/gtest_main.cpp
-        tests/lexer_contract_tests.cpp
-        tests/lexer_strict_mode_tests.cpp
-        tests/fsm_lexer_tests.cpp
-        tests/regex_lexer_tests.cpp
-        tests/conformance_tests.cpp
+        tests/coverage_tests.cpp
+        tests/diagnostic_tests.cpp
+        tests/token_tests.cpp
+        tests/lexer_tests.cpp
     )
 
     target_include_directories(cslex_gtests PRIVATE
@@ -120,8 +130,13 @@ if(BUILD_TESTING)
 
     target_link_libraries(cslex_gtests PRIVATE
         cslex_lib
-        GTest::gtest
+        GTest::gmock
     )
+
+    if(ENABLE_COVERAGE)
+        target_compile_options(cslex_gtests PRIVATE ${CSLEX_COVERAGE_FLAGS})
+        target_link_options(cslex_gtests PRIVATE ${CSLEX_COVERAGE_FLAGS})
+    endif()
 
     set_target_properties(cslex_gtests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -136,4 +151,15 @@ if(BUILD_TESTING)
     gtest_discover_tests(cslex_gtests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    if(ENABLE_COVERAGE)
+        add_custom_target(coverage
+            COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_coverage.sh"
+                    "${CMAKE_BINARY_DIR}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}"
+            DEPENDS cslex_gtests
+            USES_TERMINAL
+            COMMENT "Generating LLVM coverage report"
+        )
+    endif()
 endif()

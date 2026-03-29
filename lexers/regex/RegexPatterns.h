@@ -25,11 +25,11 @@ static const vector<RegexRule> REGEX_PATTERNS = {
     // Preprocessor directives
     {regex(R"(^#[^\n]*)"), false, TokenType::PREPROCESSOR, DiagnosticCode::UnexpectedCharacter},
     
-    // Interpolated strings: $@"...", $"...", @$"..."
-    {regex(R"(^\$@"(?:[^"]|"")*"|^\$"(?:[^"\\]|\\.)*"|^@\$"(?:[^"]|"")*")"), false, TokenType::INTERPOLATED_STRING, DiagnosticCode::UnexpectedCharacter},
+    // Interpolated strings: $@"...", $"..."
+    {regex(R"(^\$@"(?:[^"]|"")*"|^\$"(?:[^"\\]|\\.)*")"), false, TokenType::INTERPOLATED_STRING, DiagnosticCode::UnexpectedCharacter},
 
     // Unterminated interpolated strings
-    {regex(R"(^\$@"(?:[^"]|"")*$|^@\$"(?:[^"]|"")*$|^\$"(?:[^"\\]|\\.)*$)"), true, TokenType::ERROR, DiagnosticCode::UnterminatedInterpolatedStringLiteral},
+    {regex(R"(^\$@(?=[^"])|^\$@"(?:[^"]|"")*$|^\$"(?:[^"\\]|\\.)*$)"), true, TokenType::ERROR, DiagnosticCode::UnterminatedInterpolatedStringLiteral},
      
     // Verbatim strings: @"..."
     {regex(R"(^@"(?:[^"]|"")*")"), false, TokenType::VERBATIM_STRING, DiagnosticCode::UnexpectedCharacter},
@@ -38,10 +38,10 @@ static const vector<RegexRule> REGEX_PATTERNS = {
     {regex(R"(^@"(?:[^"]|"")*$)"), true, TokenType::ERROR, DiagnosticCode::UnterminatedVerbatimStringLiteral},
      
     // Character literals: '...'
-    {regex(R"(^'(?:[^'\\]|\\.)')"), false, TokenType::CHARACTER_LITERAL, DiagnosticCode::UnexpectedCharacter},
+    {regex(R"(^'(?:[^'\\\n]|\\.)*')"), false, TokenType::CHARACTER_LITERAL, DiagnosticCode::UnexpectedCharacter},
 
     // Unterminated character literals
-    {regex(R"(^'(?:[^'\\\n]|\\.)*(?:$|\n))"), true, TokenType::ERROR, DiagnosticCode::UnterminatedCharacterLiteral},
+    {regex(R"(^'(?:[^'\\\n]|\\.)*)"), true, TokenType::ERROR, DiagnosticCode::UnterminatedCharacterLiteral},
      
     // String literals: "..."
     {regex(R"(^"(?:[^"\\]|\\.)*")"), false, TokenType::STRING_LITERAL, DiagnosticCode::UnexpectedCharacter},
@@ -49,32 +49,35 @@ static const vector<RegexRule> REGEX_PATTERNS = {
     // Unterminated string literals
     {regex(R"(^"(?:[^"\\]|\\.)*(?:$|\n))"), true, TokenType::ERROR, DiagnosticCode::UnterminatedStringLiteral},
      
-    // ERROR: Invalid numeric literals (numbers followed by letters that aren't valid suffixes)
-    // These must come BEFORE valid numeric patterns to catch errors like "123abc"
-    // Binary with invalid continuation (must have at least one binary digit, then invalid letter)
-    {regex(R"(^0[bB][01_]+[a-zA-Z][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
-    // Hexadecimal with invalid continuation (hex digits + non-hex letter g-z or G-Z)
-    {regex(R"(^0[xX][0-9a-fA-F_]+[g-zG-Z][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
-    // Decimal numbers followed by invalid letters (excluding F,f,D,d,M,m,U,u,L,l,E,e for valid suffixes/exponents)
-    {regex(R"(^(?:[1-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][+-]?\d+)?|0(?![xXbB])[0-9_]*(?:\.[0-9_]*)?(?:[eE][+-]?\d+)?)[abcghi-kn-oqrstvwyzABCGHI-KN-OQRSTVWYZ][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
-     
-    // Integer literals: binary (0b...) with optional suffixes (U, L, UL)
-    {regex(R"(^0[bB][01_]+[UuLl]{0,2})"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
-     
-    // Integer literals: hexadecimal (0x...) with optional suffixes
-    {regex(R"(^0[xX][0-9a-fA-F_]+[UuLl]{0,2})"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
-     
+    // Integer literals: binary (0b...) with optional suffixes (U, L, UL, LU)
+    {regex(R"(^0[bB][01_]+([Uu]([Ll])?|[Ll]([Uu])?)?(?![a-zA-Z0-9_]))"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
+    // Invalid binary literals
+    {regex(R"(^0[bB][01_]+[Uu][Ll][a-zA-Z_][a-zA-Z0-9_]*|^0[bB][01_]+[Ll][Uu][a-zA-Z_][a-zA-Z0-9_]*|^0[bB][01_]+[Uu][a-km-zA-KM-Z_][a-zA-Z0-9_]*|^0[bB][01_]+[Ll][a-tv-zA-TV-Z_][a-zA-Z0-9_]*|^0[bB][01_]+[a-tv-zA-TV-Z_][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
+
+    // Integer literals: hexadecimal (0x...) with optional suffixes (U, L, UL, LU)
+    {regex(R"(^0[xX][0-9a-fA-F_]+([Uu]([Ll])?|[Ll]([Uu])?)?(?![a-zA-Z0-9_]))"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
+    // Invalid hexadecimal literals
+    {regex(R"(^0[xX][0-9a-fA-F_]+[Uu][Ll][a-zA-Z_][a-zA-Z0-9_]*|^0[xX][0-9a-fA-F_]+[Ll][Uu][a-zA-Z_][a-zA-Z0-9_]*|^0[xX][0-9a-fA-F_]+[Uu][a-km-zA-KM-Z_][a-zA-Z0-9_]*|^0[xX][0-9a-fA-F_]+[Ll][a-tv-zA-TV-Z_][a-zA-Z0-9_]*|^0[xX][0-9a-fA-F_]+[g-km-rtv-zG-KM-RTV-Z_][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
+
     // Real literals: decimal with decimal point and optional exponent, with optional suffixes (F, D, M)
-    {regex(R"(^(?:\d[0-9_]*\.[0-9_]*(?:[eE][+-]?\d+)?)[FfDdMm]?)"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
-     
+    {regex(R"(^(?:\d[0-9_]*\.[0-9_]*(?:[eE][+-]?\d+)?)[FfDdMm]?(?![a-zA-Z0-9_]))"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
     // Real literals: decimal with exponent, with optional suffixes
-    {regex(R"(^(?:\d[0-9_]*(?:[eE][+-]?\d+))[FfDdMm]?)"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
-     
+    {regex(R"(^(?:\d[0-9_]*(?:[eE][+-]?\d+))[FfDdMm]?(?![a-zA-Z0-9_]))"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
     // Real literals: decimal with mandatory real suffix
-    {regex(R"(^(?:\d[0-9_]*)[FfDdMm])"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
-     
-    // Integer literals: decimal without real indicators, with optional integer suffixes
-    {regex(R"(^(?:\d[0-9_]*)[UuLl]{0,2})"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
+    {regex(R"(^(?:\d[0-9_]*)[FfDdMm](?![a-zA-Z0-9_]))"), false, TokenType::REAL_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
+    // Invalid real literals
+    {regex(R"(^((\d[0-9_]*\.[0-9_]*([eE][+-]?\d+)?|\d[0-9_]*([eE][+-]?\d+)))[FfDdMm][a-zA-Z_][a-zA-Z0-9_]*|^((\d[0-9_]*\.[0-9_]*([eE][+-]?\d+)?|\d[0-9_]*([eE][+-]?\d+)))[a-cg-lno-zA-CG-LNO-Z_][a-zA-Z0-9_]*|^\d[0-9_]*[FfDdMm][a-zA-Z_][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
+
+    // Integer literals: decimal without real indicators, with optional integer suffixes (U, L, UL, LU)
+    {regex(R"(^\d[0-9_]*([Uu]([Ll])?|[Ll]([Uu])?)?(?![a-zA-Z0-9_]))"), false, TokenType::INTEGER_LITERAL, DiagnosticCode::UnexpectedCharacter},
+
+    // Invalid decimal integer literals
+    {regex(R"(^\d[0-9_]*[Uu][Ll][a-zA-Z_][a-zA-Z0-9_]*|^\d[0-9_]*[Ll][Uu][a-zA-Z_][a-zA-Z0-9_]*|^\d[0-9_]*[Uu][a-km-zA-KM-Z_][a-zA-Z0-9_]*|^\d[0-9_]*[Ll][a-tv-zA-TV-Z_][a-zA-Z0-9_]*|^\d[0-9_]*[a-cek-tv-zA-CEK-TV-Z_][a-zA-Z0-9_]*)"), true, TokenType::ERROR, DiagnosticCode::InvalidNumericLiteral},
      
     // Identifiers: optional @ prefix, followed by letter/underscore and alphanumeric/underscore
     {regex(R"(^@?[a-zA-Z_][a-zA-Z0-9_]*)"), false, TokenType::IDENTIFIER, DiagnosticCode::UnexpectedCharacter},

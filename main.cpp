@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 #include "lexers/ILexer.h"
+#include "lexers/LexicalException.h"
 #include "lexers/fsm/FSMLexer.h"
 #include "lexers/regex/RegexLexer.h"
 
@@ -12,12 +13,25 @@ using namespace std;
 using namespace std::chrono;
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        cerr << "Usage: " << argv[0] << " <input_file.cs>" << endl;
+    if (argc < 2 || argc > 3) {
+        cerr << "Usage: " << argv[0] << " [--strict] <input_file.cs>" << endl;
         return 1;
     }
-    
-    string input_file = argv[1];
+
+    ErrorMode error_mode = ErrorMode::Collect;
+    string input_file;
+
+    if (argc == 3) {
+        if (string(argv[1]) != "--strict") {
+            cerr << "Usage: " << argv[0] << " [--strict] <input_file.cs>" << endl;
+            return 1;
+        }
+
+        error_mode = ErrorMode::Throw;
+        input_file = argv[2];
+    } else {
+        input_file = argv[1];
+    }
     
     ifstream file(input_file);
     if (!file.is_open()) {
@@ -31,11 +45,18 @@ int main(int argc, char* argv[]) {
     file.close();
     
     cout << "Analyzing file: " << input_file << "\n\n";
+    cout << "Mode: " << (error_mode == ErrorMode::Throw ? "strict" : "tolerant") << "\n\n";
     
     cout << "FSM Lexer\n";
     auto fsm_lexer = make_unique<FSMLexer>();
     auto fsm_start = high_resolution_clock::now();
-    auto fsm_result = fsm_lexer->tokenize(file_content);
+    LexerResult fsm_result;
+    try {
+        fsm_result = fsm_lexer->tokenize(file_content, error_mode);
+    } catch (const LexicalException& exception) {
+        cerr << "FSM lexical error: " << exception.what() << endl;
+        return 1;
+    }
     auto fsm_end = high_resolution_clock::now();
     auto fsm_duration = duration_cast<microseconds>(fsm_end - fsm_start);
     
@@ -56,7 +77,13 @@ int main(int argc, char* argv[]) {
     cout << "Regex Lexer\n";
     auto regex_lexer = make_unique<RegexLexer>();
     auto regex_start = high_resolution_clock::now();
-    auto regex_result = regex_lexer->tokenize(file_content);
+    LexerResult regex_result;
+    try {
+        regex_result = regex_lexer->tokenize(file_content, error_mode);
+    } catch (const LexicalException& exception) {
+        cerr << "Regex lexical error: " << exception.what() << endl;
+        return 1;
+    }
     auto regex_end = high_resolution_clock::now();
     auto regex_duration = duration_cast<microseconds>(regex_end - regex_start);
     
