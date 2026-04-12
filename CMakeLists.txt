@@ -33,6 +33,12 @@ add_library(cslex_lib
     Position.h
     Keywords.h
     Operators.h
+    app/LexerComparisonApp.h
+    app/LexerComparisonApp.cpp
+    io/ISourceRepository.h
+    io/SourceDocument.h
+    io/SourceRepository.h
+    io/SourceRepository.cpp
     lexers/ILexer.h
     lexers/Diagnostic.h
     lexers/LexerResult.h
@@ -118,8 +124,11 @@ if(BUILD_TESTING)
 
     add_executable(cslex_gtests
         tests/gtest_main.cpp
+        tests/app_mock_tests.cpp
         tests/coverage_tests.cpp
         tests/diagnostic_tests.cpp
+        tests/fsm_mock_tests.cpp
+        tests/source_repository_tests.cpp
         tests/token_tests.cpp
         tests/lexer_tests.cpp
     )
