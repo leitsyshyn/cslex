@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -217,7 +218,7 @@ int LexerComparisonApp::run(const vector<string>& inputs,
     vector<string> resolvedInputs;
     try {
         resolvedInputs = sourceRepository.resolveInputs(inputs);
-    } catch (const exception& exception) {
+    } catch (const runtime_error& exception) {
         err << "Error: " << exception.what() << '\n';
         return 1;
     }
@@ -240,7 +241,7 @@ int LexerComparisonApp::run(const vector<string>& inputs,
         SourceDocument document;
         try {
             document = sourceRepository.load(path);
-        } catch (const exception& exception) {
+        } catch (const runtime_error& exception) {
             err << "Error loading '" << path << "': " << exception.what() << '\n';
             ++failures;
             continue;

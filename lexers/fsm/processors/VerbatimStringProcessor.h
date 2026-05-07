@@ -5,14 +5,12 @@
 class VerbatimStringProcessor : public IProcessor {
 public:
     ProcessorResult process(InputBuffer& buffer) override {
-        char c = buffer.peek();
-        
-        if (c != '@' || buffer.peek_next() != '"') {
+        if (const char c = buffer.peek(); c != '@' || buffer.peek_next() != '"') {
             return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
-        string lexeme;
+        std::string lexeme;
         bool terminated = false;
         lexeme += buffer.advance();
         lexeme += buffer.advance(); 

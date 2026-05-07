@@ -16,7 +16,7 @@ public:
         }
         
         Position start = buffer.getCurrentPosition();
-        string lexeme;
+        std::string lexeme;
         
         if (is_verbatim) {
             lexeme += buffer.advance();

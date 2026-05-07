@@ -5,8 +5,6 @@
 #include <iomanip>
 #include <sstream>
 
-using namespace std;
-
 enum class TokenType {
     INTEGER_LITERAL,      // Decimal, hex, or binary integer
     REAL_LITERAL,         // Float, double, or decimal
@@ -18,7 +16,7 @@ enum class TokenType {
     IDENTIFIER,           // Names
     OPERATOR,             // +, -, *, /, etc.
     SEPARATOR,            // { } ( ) [ ] , ; :
-    COMMENT,              // // or /* */
+    COMMENT,              // Single-line or block comment
     PREPROCESSOR,         // #define, #if, etc.
     WHITESPACE,           // Spaces, tabs, newlines
     ERROR,                // Lexical errors
@@ -27,16 +25,16 @@ enum class TokenType {
 
 struct Token {
     TokenType type;      
-    string lexeme;      
+    std::string lexeme;      
     Position start;       
     Position end;  
 
     Token() : type(TokenType::ERROR) {}
 
-    Token(TokenType t, const string& lex, const Position& s, const Position& e)
+    Token(TokenType t, const std::string& lex, const Position& s, const Position& e)
         : type(t), lexeme(lex), start(s), end(e) {}
 
-    string tokenTypeToString() const {
+    std::string tokenTypeToString() const {
         switch (type) {
             case TokenType::INTEGER_LITERAL: return "INTEGER_LITERAL";
             case TokenType::REAL_LITERAL: return "REAL_LITERAL";
@@ -57,9 +55,9 @@ struct Token {
         }
     }
 
-    string toString() const {
-        ostringstream oss;
-        oss << left << setw(20) << tokenTypeToString() << " " << lexeme;
+    std::string toString() const {
+        std::ostringstream oss;
+        oss << std::left << std::setw(20) << tokenTypeToString() << " " << lexeme;
         return oss.str();
     }
 

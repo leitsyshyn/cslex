@@ -6,8 +6,6 @@
 #include <optional>
 #include <string>
 
-using namespace std;
-
 struct ProcessorResult {
     bool matched = false;
     std::optional<Token> token;
@@ -25,7 +23,7 @@ protected:
     }
 
     static ProcessorResult tokenResult(TokenType type,
-                                       const string& lexeme,
+                                       const std::string& lexeme,
                                        const Position& start,
                                        const Position& end) {
         ProcessorResult result;
@@ -35,7 +33,7 @@ protected:
     }
 
     static ProcessorResult diagnosticResult(DiagnosticCode code,
-                                            const string& lexeme,
+                                            const std::string& lexeme,
                                             const Position& start,
                                             const Position& end) {
         ProcessorResult result;

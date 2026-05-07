@@ -8,7 +8,54 @@ void appendDiagnostic(LexerResult& result, const Diagnostic& diagnostic, ErrorMo
         throw LexicalException(diagnostic);
     }
 
-    result.diagnostics.push_back(diagnostic);
+    result.diagnostics.emplace_back(diagnostic);
+}
+
+void appendToken(LexerResult& result,
+                 const RegexRule& rule,
+                 const std::string& lexeme,
+                 const Position& start,
+                 const Position& end) {
+    if (rule.token_type == TokenType::WHITESPACE) {
+        return;
+    }
+
+    TokenType token_type = rule.token_type;
+    if (token_type == TokenType::IDENTIFIER) {
+        token_type = classifyIdentifierLexeme(lexeme);
+    }
+
+    result.tokens.emplace_back(token_type, lexeme, start, end);
+}
+
+bool appendRuleMatch(const std::string& source,
+                     const RegexRule& rule,
+                     std::size_t& cursor,
+                     Position& current_position,
+                     LexerResult& result,
+                     ErrorMode errorMode) {
+    std::smatch match;
+    if (!std::regex_search(source.cbegin() + cursor,
+                           source.cend(),
+                           match,
+                           rule.pattern,
+                           std::regex_constants::match_continuous)) {
+        return false;
+    }
+
+    const std::string lexeme = match.str(0);
+    const Position start = current_position;
+    const Position end = advancePosition(start, lexeme);
+
+    if (rule.emits_diagnostic) {
+        appendDiagnostic(result, makeDiagnostic(rule.diagnostic_code, lexeme, start, end), errorMode);
+    } else {
+        appendToken(result, rule, lexeme, start, end);
+    }
+
+    current_position = end;
+    cursor = end.index;
+    return true;
 }
 } // namespace
 
@@ -16,7 +63,7 @@ LexerResult RegexLexer::tokenize(const std::string& source, ErrorMode errorMode)
     return tokenizeSource(source, errorMode);
 }
 
-LexerResult RegexLexer::tokenizeSource(const string& source, ErrorMode errorMode) {
+LexerResult RegexLexer::tokenizeSource(const std::string& source, ErrorMode errorMode) {
     LexerResult result;
     Position current_position;
     
@@ -25,35 +72,14 @@ LexerResult RegexLexer::tokenizeSource(const string& source, ErrorMode errorMode
         bool matched = false;
         
         for (const auto& rule : REGEX_PATTERNS) {
-            smatch match;
-            if (regex_search(source.cbegin() + cursor, source.cend(), match, rule.pattern,
-                            regex_constants::match_continuous)) {
-                string lexeme = match.str(0);
-                Position start = current_position;
-                Position end = advancePosition(start, lexeme);
-
-                if (rule.emits_diagnostic) {
-                    appendDiagnostic(result,
-                                     makeDiagnostic(rule.diagnostic_code, lexeme, start, end),
-                                     errorMode);
-                } else if (rule.token_type != TokenType::WHITESPACE) {
-                    TokenType token_type = rule.token_type;
-                    if (token_type == TokenType::IDENTIFIER) {
-                        token_type = classifyIdentifierLexeme(lexeme);
-                    }
-
-                    result.tokens.push_back(Token(token_type, lexeme, start, end));
-                }
-
-                current_position = end;
-                cursor = end.index;
+            if (appendRuleMatch(source, rule, cursor, current_position, result, errorMode)) {
                 matched = true;
                 break;
             }
         }
         
         if (!matched) {
-            string lexeme(1, source[cursor]);
+            std::string lexeme(1, source[cursor]);
             Position start = current_position;
             Position end = advancePosition(start, lexeme);
             appendDiagnostic(result,
@@ -64,7 +90,7 @@ LexerResult RegexLexer::tokenizeSource(const string& source, ErrorMode errorMode
         }
     }
     
-    result.tokens.push_back(Token(TokenType::END_OF_FILE, "", current_position, current_position));
+    result.tokens.emplace_back(TokenType::END_OF_FILE, "", current_position, current_position);
     
     return result;
 }

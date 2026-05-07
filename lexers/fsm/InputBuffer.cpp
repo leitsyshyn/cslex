@@ -1,7 +1,7 @@
 #include "InputBuffer.h"
 
 InputBuffer::InputBuffer(const std::string& source)
-    : source(source), position() {
+    : source(source) {
 }
 
 char InputBuffer::peek(std::size_t offset) const {

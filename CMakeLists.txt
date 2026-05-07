@@ -46,7 +46,7 @@ add_library(cslex_lib
     lexers/LexicalRules.h
     lexers/fsm/FSMLexer.cpp
     lexers/fsm/FSMLexer.h
-    lexers/fsm/FSMRuleRegistry.h
+    lexers/fsm/FsmRuleRegistry.h
     lexers/fsm/InputBuffer.cpp
     lexers/fsm/InputBuffer.h
     lexers/fsm/processors/IProcessor.h

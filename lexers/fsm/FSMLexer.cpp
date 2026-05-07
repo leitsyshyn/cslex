@@ -1,7 +1,7 @@
 
 #include "FSMLexer.h"
 #include "../LexicalException.h"
-#include "FSMRuleRegistry.h"
+#include "FsmRuleRegistry.h"
 #include <cctype>
 
 FSMLexer::FSMLexer() {
@@ -15,7 +15,7 @@ FSMLexer::FSMLexer(std::vector<std::unique_ptr<IProcessor>> customProcessors)
 namespace {
 void appendProcessorResult(LexerResult& result, const ProcessorResult& processorResult, ErrorMode errorMode) {
     if (processorResult.token.has_value()) {
-        result.tokens.push_back(*processorResult.token);
+        result.tokens.emplace_back(*processorResult.token);
         return;
     }
 
@@ -24,7 +24,7 @@ void appendProcessorResult(LexerResult& result, const ProcessorResult& processor
             throw LexicalException(*processorResult.diagnostic);
         }
 
-        result.diagnostics.push_back(*processorResult.diagnostic);
+        result.diagnostics.emplace_back(*processorResult.diagnostic);
     }
 }
 } // namespace
@@ -34,7 +34,7 @@ LexerResult FSMLexer::tokenize(const std::string& source, ErrorMode errorMode) {
     return tokenizeBuffer(buffer, errorMode);
 }
 
-LexerResult FSMLexer::tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) {
+LexerResult FSMLexer::tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) const {
     LexerResult result;
 
     while (!buffer.eof()) {
@@ -57,7 +57,7 @@ LexerResult FSMLexer::tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) {
         
         if (!processed) {
             Position start = buffer.getCurrentPosition();
-            string lexeme(1, buffer.advance());
+            std::string lexeme(1, buffer.advance());
             Position end = buffer.getCurrentPosition();
 
             Diagnostic diagnostic = makeDiagnostic(DiagnosticCode::UnexpectedCharacter, lexeme, start, end);
@@ -65,12 +65,12 @@ LexerResult FSMLexer::tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) {
                 throw LexicalException(diagnostic);
             }
 
-            result.diagnostics.push_back(diagnostic);
+            result.diagnostics.emplace_back(diagnostic);
         }
     }
     
     Position end_pos = buffer.getCurrentPosition();
-    result.tokens.push_back(Token(TokenType::END_OF_FILE, "", end_pos, end_pos));
+    result.tokens.emplace_back(TokenType::END_OF_FILE, "", end_pos, end_pos);
     
     return result;
 }

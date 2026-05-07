@@ -17,10 +17,14 @@ namespace fs = std::filesystem;
 namespace {
 class TempDirectory {
 public:
-    TempDirectory()
-        : root(fs::temp_directory_path() / ("cslex-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))) {
+    TempDirectory() {
         fs::create_directories(root);
     }
+
+    TempDirectory(const TempDirectory&) = delete;
+    TempDirectory& operator=(const TempDirectory&) = delete;
+    TempDirectory(TempDirectory&&) = delete;
+    TempDirectory& operator=(TempDirectory&&) = delete;
 
     ~TempDirectory() {
         std::error_code error;
@@ -32,7 +36,8 @@ public:
     }
 
 private:
-    fs::path root;
+    fs::path root = fs::current_path() / "build" / "test-temp"
+        / ("cslex-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
 };
 
 void writeBinaryFile(const fs::path& path, const std::string& content) {
@@ -45,7 +50,8 @@ void writeBinaryFile(const fs::path& path, const std::string& content) {
 TEST(SourceRepositoryTests, Load_NormalizesUtf8BomAndNewlines) {
     TempDirectory tempDirectory;
     const fs::path sourcePath = tempDirectory.path() / "normalized.cs";
-    writeBinaryFile(sourcePath, std::string("\xEF\xBB\xBF") + "first\r\nsecond\rthird");
+    const std::string utf8Bom{static_cast<char>(0xEF), static_cast<char>(0xBB), static_cast<char>(0xBF)};
+    writeBinaryFile(sourcePath, utf8Bom + "first\r\nsecond\rthird");
 
     SourceRepository repository;
     const SourceDocument document = repository.load(sourcePath.string());
@@ -82,8 +88,8 @@ TEST(SourceRepositoryTests, Load_ThrowsForMissingFile) {
 
     try {
         (void)repository.load("tests/does_not_exist.cs");
-        FAIL() << "Expected std::runtime_error";
-    } catch (const std::runtime_error& exception) {
+        FAIL() << "Expected SourceRepositoryException";
+    } catch (const SourceRepositoryException& exception) {
         EXPECT_THAT(std::string(exception.what()), HasSubstr("Could not open file 'tests/does_not_exist.cs'"));
     }
 }
@@ -93,8 +99,8 @@ TEST(SourceRepositoryTests, ResolveInputs_ThrowsForMissingPath) {
 
     try {
         (void)repository.resolveInputs({"tests/does_not_exist_directory"});
-        FAIL() << "Expected std::runtime_error";
-    } catch (const std::runtime_error& exception) {
+        FAIL() << "Expected SourceRepositoryException";
+    } catch (const SourceRepositoryException& exception) {
         EXPECT_THAT(std::string(exception.what()), HasSubstr("Input path 'tests/does_not_exist_directory' does not exist"));
     }
 }

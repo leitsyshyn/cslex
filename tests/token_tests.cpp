@@ -1,5 +1,7 @@
 #include "test_utils.h"
 
+#include <array>
+
 using namespace testing;
 
 namespace {
@@ -8,7 +10,7 @@ struct TokenStringCase {
     const char* expected;
 };
 
-constexpr TokenStringCase kTokenStringCases[] = {
+constexpr std::array<TokenStringCase, 15> kTokenStringCases = {{
     {TokenType::INTEGER_LITERAL, "INTEGER_LITERAL"},
     {TokenType::REAL_LITERAL, "REAL_LITERAL"},
     {TokenType::CHARACTER_LITERAL, "CHARACTER_LITERAL"},
@@ -24,7 +26,7 @@ constexpr TokenStringCase kTokenStringCases[] = {
     {TokenType::WHITESPACE, "WHITESPACE"},
     {TokenType::ERROR, "ERROR"},
     {TokenType::END_OF_FILE, "END_OF_FILE"},
-};
+}};
 } // namespace
 
 class TokenStringTests : public TestWithParam<TokenStringCase> {

@@ -16,15 +16,15 @@
 
 inline std::vector<std::unique_ptr<IProcessor>> createDefaultFSMProcessors() {
     std::vector<std::unique_ptr<IProcessor>> processors;
-    processors.push_back(std::make_unique<PreprocessorProcessor>());
-    processors.push_back(std::make_unique<CommentProcessor>());
-    processors.push_back(std::make_unique<VerbatimStringProcessor>());
-    processors.push_back(std::make_unique<InterpolatedStringProcessor>());
-    processors.push_back(std::make_unique<StringProcessor>());
-    processors.push_back(std::make_unique<CharProcessor>());
-    processors.push_back(std::make_unique<NumberProcessor>());
-    processors.push_back(std::make_unique<IdentifierProcessor>());
-    processors.push_back(std::make_unique<OperatorProcessor>());
-    processors.push_back(std::make_unique<SeparatorProcessor>());
+    processors.emplace_back(std::make_unique<PreprocessorProcessor>());
+    processors.emplace_back(std::make_unique<CommentProcessor>());
+    processors.emplace_back(std::make_unique<VerbatimStringProcessor>());
+    processors.emplace_back(std::make_unique<InterpolatedStringProcessor>());
+    processors.emplace_back(std::make_unique<StringProcessor>());
+    processors.emplace_back(std::make_unique<CharProcessor>());
+    processors.emplace_back(std::make_unique<NumberProcessor>());
+    processors.emplace_back(std::make_unique<IdentifierProcessor>());
+    processors.emplace_back(std::make_unique<OperatorProcessor>());
+    processors.emplace_back(std::make_unique<SeparatorProcessor>());
     return processors;
 }

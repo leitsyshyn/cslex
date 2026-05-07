@@ -51,7 +51,7 @@ LexerResult makeLexerResult(const std::vector<Token>& tokens,
     if (!tokens.empty()) {
         eofPosition = tokens.back().end;
     }
-    result.tokens.push_back(Token(TokenType::END_OF_FILE, "", eofPosition, eofPosition));
+    result.tokens.emplace_back(TokenType::END_OF_FILE, "", eofPosition, eofPosition);
     return result;
 }
 } // namespace

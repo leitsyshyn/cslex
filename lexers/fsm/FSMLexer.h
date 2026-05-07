@@ -6,8 +6,6 @@
 #include <memory>
 #include <vector>
 
-using namespace std;
-
 class FSMLexer : public ILexer {
 public:
     FSMLexer();
@@ -15,6 +13,6 @@ public:
     LexerResult tokenize(const std::string& source, ErrorMode errorMode = ErrorMode::Collect) override;
 
 private:
-    LexerResult tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode);
-    vector<unique_ptr<IProcessor>> processors;
+    LexerResult tokenizeBuffer(InputBuffer& buffer, ErrorMode errorMode) const;
+    std::vector<std::unique_ptr<IProcessor>> processors;
 };

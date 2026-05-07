@@ -5,14 +5,12 @@
 class CharProcessor : public IProcessor {
 public:
     ProcessorResult process(InputBuffer& buffer) override {
-        char c = buffer.peek();
-        
-        if (c != '\'') {
+        if (const char c = buffer.peek(); c != '\'') {
             return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
-        string lexeme;
+        std::string lexeme;
         lexeme += buffer.advance();
         
         while (buffer.peek() != '\'' && buffer.peek() != '\0' && buffer.peek() != '\n') {

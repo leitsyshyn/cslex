@@ -1,14 +1,15 @@
 #pragma once
 
-#include <string>
+#include <array>
+#include <string_view>
 
-const std::string THREE_CHAR_OPERATORS[] = {
+constexpr std::array<std::string_view, 3> THREE_CHAR_OPERATORS = {
     "<<=",
     ">>=",
-    "?" "?="
+    "\?\?="
 };
 
-const std::string TWO_CHAR_OPERATORS[] = {
+constexpr std::array<std::string_view, 21> TWO_CHAR_OPERATORS = {
     "==",
     "!=",
     "<=",
@@ -28,8 +29,8 @@ const std::string TWO_CHAR_OPERATORS[] = {
     "<<",
     ">>",
     "=>",
-    "?" "?",
+    "\?\?",
     "?."
 };
 
-const std::string SINGLE_CHAR_OPERATORS = "+-*/%=<>!&|^~?:.";
+constexpr std::string_view SINGLE_CHAR_OPERATORS = "+-*/%=<>!&|^~?:.";

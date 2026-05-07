@@ -5,15 +5,13 @@
 class CommentProcessor : public IProcessor {
 public:
     ProcessorResult process(InputBuffer& buffer) override {
-        char c = buffer.peek();
-        
-        if (c != '/') {
+        if (const char c = buffer.peek(); c != '/') {
             return noMatch();
         }
         
         if (buffer.peek_next() == '/') {
             Position start = buffer.getCurrentPosition();
-            string lexeme;
+            std::string lexeme;
             while (buffer.peek() != '\n' && buffer.peek() != '\0') {
                 lexeme += buffer.advance();
             }
@@ -22,7 +20,7 @@ public:
         
         if (buffer.peek_next() == '*') {
             Position start = buffer.getCurrentPosition();
-            string lexeme;
+            std::string lexeme;
             lexeme += buffer.advance(); 
             lexeme += buffer.advance(); 
             

@@ -5,7 +5,7 @@
 using namespace testing;
 
 class LexerTests : public TestWithParam<LexerKind> {
-protected:
+public:
     void SetUp() override {
         lexer = makeLexer(GetParam());
     }
@@ -225,12 +225,12 @@ TEST_P(LexerTests, Characters_ReportsUnterminatedCharacterLiteralAtNewline) {
 // String and interpolated-string literals.
 
 TEST_P(LexerTests, Strings_TokenizesVerbatimStringWithEscapedQuotes) {
-    const LexerResult result = lexer->tokenizeTolerant("@\"a \"\"quoted\"\" value\"");
+    const LexerResult result = lexer->tokenizeTolerant(R"(@"a ""quoted"" value")");
     const auto tokens = nonEofTokens(result.tokens);
 
     ASSERT_THAT(result.diagnostics, IsEmpty());
     ASSERT_THAT(tokens, SizeIs(1));
-    EXPECT_THAT(tokens[0], TokenIs(TokenType::VERBATIM_STRING, "@\"a \"\"quoted\"\" value\""));
+    EXPECT_THAT(tokens[0], TokenIs(TokenType::VERBATIM_STRING, R"(@"a ""quoted"" value")"));
 }
 
 TEST_P(LexerTests, Strings_ReportsUnterminatedVerbatimStringLiteral) {
@@ -261,21 +261,21 @@ TEST_P(LexerTests, Strings_TokenizesInterpolatedStringWithEscapedBracesAndNested
 }
 
 TEST_P(LexerTests, Strings_TokenizesInterpolatedStringWithEscapedCharacters) {
-    const LexerResult result = lexer->tokenizeTolerant("$\"c:\\\\temp\\\\{file}\"");
+    const LexerResult result = lexer->tokenizeTolerant(R"($"c:\\temp\\{file}")");
     const auto tokens = nonEofTokens(result.tokens);
 
     ASSERT_THAT(result.diagnostics, IsEmpty());
     ASSERT_THAT(tokens, SizeIs(1));
-    EXPECT_THAT(tokens[0], TokenIs(TokenType::INTERPOLATED_STRING, "$\"c:\\\\temp\\\\{file}\""));
+    EXPECT_THAT(tokens[0], TokenIs(TokenType::INTERPOLATED_STRING, R"($"c:\\temp\\{file}")"));
 }
 
 TEST_P(LexerTests, Strings_TokenizesVerbatimInterpolatedStringWithDoubledQuotes) {
-    const LexerResult result = lexer->tokenizeTolerant("$@\"say \"\"{name}\"\"\"");
+    const LexerResult result = lexer->tokenizeTolerant(R"CSLEX($@"say ""{name}""")CSLEX");
     const auto tokens = nonEofTokens(result.tokens);
 
     ASSERT_THAT(result.diagnostics, IsEmpty());
     ASSERT_THAT(tokens, SizeIs(1));
-    EXPECT_THAT(tokens[0], TokenIs(TokenType::INTERPOLATED_STRING, "$@\"say \"\"{name}\"\"\""));
+    EXPECT_THAT(tokens[0], TokenIs(TokenType::INTERPOLATED_STRING, R"CSLEX($@"say ""{name}""")CSLEX"));
 }
 
 TEST_P(LexerTests, Strings_ReportsUnterminatedInterpolatedStringWithOpenInterpolation) {

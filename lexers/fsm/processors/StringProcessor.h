@@ -5,15 +5,13 @@
 class StringProcessor : public IProcessor {
 public:
     ProcessorResult process(InputBuffer& buffer) override {
-        char c = buffer.peek();
-        
-        if (c != '"') {
+        if (const char c = buffer.peek(); c != '"') {
             return noMatch();
         }
         
         Position start = buffer.getCurrentPosition();
-        string lexeme;
-        char quote_type = c;
+        std::string lexeme;
+        char quote_type = '"';
         lexeme += buffer.advance();
         
         while (buffer.peek() != quote_type && buffer.peek() != '\0' && buffer.peek() != '\n') {

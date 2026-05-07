@@ -32,7 +32,7 @@ double readTotalLineCoveragePercent(const std::filesystem::path& summaryPath) {
 } // namespace
 
 class CoverageSummaryTests : public Test {
-protected:
+public:
     static void SetUpTestSuite() {
         defaultSummaryPath = "build-coverage/coverage/summary.txt";
     }
